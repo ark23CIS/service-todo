@@ -1,0 +1,64 @@
+service:
+  name: todo-service
+
+plugins:
+  - serverless-bundle
+
+provider:
+  name: aws
+  runtime: nodejs12.x
+  memorySize: 256
+  stage: ${opt:stage, 'dev'}
+  region: 'eu-west-1'
+  environment:
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - dynamodb:PutItem
+        - dynamodb:Query
+        - dynamodb:DeleteItem
+        - dynamodb:GetItem
+        - dynamodb:DeleteItem
+      Resource:
+        - arn:aws:dynamodb:#{AWS::Region}:#{AWS::AccountId}:table/TodosTable
+
+resources:
+  Resources:
+    TodosTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: TodosTable
+        BillingMode: PAY_PER_REQUEST
+        AttributeDefinitions:
+          - AttributeName: id
+            AttributeType: S
+        KeySchema:
+          - AttributeName: id
+            KeyType: HASH
+
+functions:
+  listTodos:
+    handler: src/handlers/listTodos.handler
+    events:
+      - http:
+          method: GET
+          path: /todos/{userId}
+  create:
+    handler: src/handlers/createTodo.handler
+    events:
+      - http:
+          method: POST
+          path: /todos
+  update: 
+    handler: src/handlers/updateTodo.handler
+    events: 
+      - http:
+          method: PUT
+          path: /todos
+  delete:
+    handler: src/handlers/deleteTodo.handler
+    events:
+      - http:
+          method: DELETE 
+          path: /todos/{id}
+  
