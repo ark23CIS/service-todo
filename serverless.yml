@@ -1,0 +1,83 @@
+service:
+  name: todo-service
+
+plugins:
+  - serverless-bundle
+
+provider:
+  name: aws
+  runtime: nodejs12.x
+  memorySize: 256
+  stage: ${opt:stage, 'dev'}
+  region: 'eu-west-1'
+  environment:
+    TODOS_TABLE_NAME: TodosCopyTable
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - dynamodb:PutItem
+        - dynamodb:Scan
+        - dynamodb:DeleteItem
+        - dynamodb:GetItem
+      Resource:
+        - arn:aws:dynamodb:eu-west-1:536674777538:table/TodosCopyTable
+    - Effect: Allow
+      Action:
+        - dynamodb:Query
+        - dynamodb:Scan
+      Resource: arn:aws:dynamodb:eu-west-1:536674777538:table/TodosCopyTable/index/*
+
+resources:
+  Resources:
+    TodosCopyTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:provider.environment.TODOS_TABLE_NAME}
+        BillingMode: PAY_PER_REQUEST
+        AttributeDefinitions:
+          - AttributeName: id
+            AttributeType: S
+          - AttributeName: userId
+            AttributeType: S
+          - AttributeName: createdAt
+            AttributeType: S
+        KeySchema:
+          - AttributeName: id
+            KeyType: HASH
+        GlobalSecondaryIndexes:
+          - IndexName: userIdIndex
+            KeySchema:
+              - AttributeName: userId
+                KeyType: HASH
+              - AttributeName: createdAt
+                KeyType: RANGE
+            Projection:
+              ProjectionType: ALL
+
+
+functions:
+  listTodos:
+    handler: src/handlers/listTodos.handler
+    events:
+      - http:
+          method: GET
+          path: /todos/{id}
+  create:
+    handler: src/handlers/createTodo.handler
+    events:
+      - http:
+          method: POST
+          path: /todos
+  update: 
+    handler: src/handlers/updateTodo.handler
+    events: 
+      - http:
+          method: PUT
+          path: /todos
+  delete:
+    handler: src/handlers/deleteTodo.handler
+    events:
+      - http:
+          method: DELETE 
+          path: /todos/{id}
+  
