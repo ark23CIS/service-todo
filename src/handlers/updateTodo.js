@@ -17,6 +17,17 @@ async function updateTodo(event) {
   };
 
   try {
+    const result = await DynamoDB.get({
+      TableName: process.env.TODOS_TABLE_NAME,
+      Key: { id },
+    }).promise();
+
+    if (!result.Item) {
+      return {
+        statusCode: 400,
+      };
+    }
+
     await DynamoDB.put({
       TableName: process.env.TODOS_TABLE_NAME,
       Item: todo,
